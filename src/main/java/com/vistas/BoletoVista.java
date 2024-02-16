@@ -18,6 +18,8 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -27,6 +29,7 @@ import java.util.logging.Logger;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -42,8 +45,8 @@ public class BoletoVista extends javax.swing.JFrame {
         InicializarPanelBus();
         InicializarCompraBoleto();
     }
-    public BoletoVista(MenuVista pMenuVista)
-    {
+    
+    public BoletoVista(MenuVista pMenuVista) {
         this.menuVista = pMenuVista;
         initComponents();
         InicializarPanelBus();
@@ -385,20 +388,20 @@ public class BoletoVista extends javax.swing.JFrame {
         if (!btnComprar.isEnabled()) {
             return;
         }
-
+        
         if (this.tfAsientos.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Debe seleccionar asientos.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-
+        
         BoletoControlador boletoControlador = new BoletoControlador();
-
+        
         LocalDateTime fechaHoraActual = LocalDateTime.now();
         // Define el formato deseado
         DateTimeFormatter formato = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
+        
         UUID personaId = session.getIdTemporal();
-
+        
         Boleto boleto = new Boleto();
         boleto.setBoletoId(this.GenerarBoletoId());
         boleto.setIdPersona(personaId);
@@ -406,7 +409,7 @@ public class BoletoVista extends javax.swing.JFrame {
         boleto.setBoletoPrecioAsiento(Double.parseDouble(this.tfPrecioAsiento.getText()));
         boleto.setBoletoTotal(Double.parseDouble(this.tfTotal.getText()));
         boleto.setBoletoFechaCreacion(fechaHoraActual.format(formato));
-
+        
         try {
             boletoControlador.GuardarBoleto(boleto);
             JOptionPane.showMessageDialog(null, "ASIENTOS RESERVADOS CORRECTAMENTE", "Exito", JOptionPane.INFORMATION_MESSAGE);
@@ -440,36 +443,37 @@ public class BoletoVista extends javax.swing.JFrame {
         // TODO add your handling code here:
         String personaDPI = this.tfPersonaDPI.getText();
         String personaNIT = this.tfPersonaNIT.getText();
-
+        
         if (!this.ValidarDatosBusquedaPersona(personaDPI, personaNIT)) {
             this.btnComprar.setEnabled(false);
             return;
         }
-
+        
         long personaDocumento = !personaDPI.isEmpty() ? Long.parseLong(personaDPI) : 0;
         
         Persona persona = this.BuscarPersona(personaDocumento, personaNIT);
-
+        
         if (persona == null) {
             this.btnComprar.setEnabled(false);
             JOptionPane.showMessageDialog(null, "NO SE ENCONTRARON REGISTROS CON ESE NÚMERO DE DOCUMENTO O NIT. SE REDIRECCIONARA A LA PESTAÑA DE REGISTRO DE PERSONAS", "Error", JOptionPane.ERROR_MESSAGE);
             this.RedireccionarPersona();
             return;
         }
-
+        
         session = Session.getInstance();
         session.setIdTemporal(persona.getPersonaId());
-
+        
         this.tfPersonaDPI.setText(String.valueOf(persona.getPersonaDocumento()));
         this.tfPersonaNIT.setText(persona.getPersonaNIT());
         this.tfPersonaNombre.setText(persona.getPersonaNombre());
-
+        
         this.btnComprar.setEnabled(true);
     }//GEN-LAST:event_btnBuscarPersonaMouseClicked
+    
     private UUID GenerarBoletoId() {
         return UUID.randomUUID();
     }
-
+    
     private Boolean ValidarDatosBusquedaPersona(String pPersonaDPI, String pPersonaNIT) {
         if ("0".equals(pPersonaDPI) && pPersonaNIT.isEmpty()) {
             JOptionPane.showMessageDialog(null, "DEBE INGRESAR UN NÚMERO DE DOCUMENTO O NIT", "Error", JOptionPane.ERROR_MESSAGE);
@@ -485,23 +489,23 @@ public class BoletoVista extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(null, "DEBE INGRESAR UN NÚMERO DE DOCUMENTO VÁLIDO", "Error", JOptionPane.ERROR_MESSAGE);
             return false;
         }
-
+        
         if ("C/F".equals(pPersonaNIT) || "c/f".equals(pPersonaNIT)) {
             JOptionPane.showMessageDialog(null, "DEBE INGRESAR UN NÚMERO DE NIT VÁLIDO", "Error", JOptionPane.ERROR_MESSAGE);
             return false;
         }
-
+        
         return true;
     }
-
+    
     private Persona BuscarPersona(long pPersonaDocumento, String pPersonaNIT) {
         PersonaControlador personaControlador = new PersonaControlador();
-
+        
         Persona persona = personaControlador.BuscarPersona(pPersonaDocumento, pPersonaNIT);
-
+        
         return persona;
     }
-
+    
     private void RedireccionarPersona() {
         PersonaVista personaVista = new PersonaVista();
         this.menuVista.panelSecundario.removeAll();
@@ -509,40 +513,62 @@ public class BoletoVista extends javax.swing.JFrame {
         this.menuVista.panelSecundario.revalidate();
         this.menuVista.panelSecundario.repaint();
     }
-
+    
     private MouseAdapter CrearClicAsientoDisponible(char row, int subColumn) {
         return new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                tfAsientos.setText(tfAsientos.getText().trim().matches("\\s*") ? "" : tfAsientos.getText());
+                
                 int fila = (e.getY() / 50) + 1;
                 char rowChar = (char) (row + fila - 1);
-
+                
                 String coordenadaAsiento = String.valueOf(rowChar) + subColumn;
+                
+                if (SwingUtilities.isRightMouseButton(e) && !tfAsientos.getText().isEmpty()) {
+                    String asientosSeleccionados = tfAsientos.getText().trim();
 
-                if (coordenadaAsiento == null || coordenadaAsiento.isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "El asiento no es válido.", "Error", JOptionPane.ERROR_MESSAGE);
-                } else if (tfAsientos.getText().contains(coordenadaAsiento)) {
-                    JOptionPane.showMessageDialog(null, "El asiento ya ha sido seleccionado.", "Error", JOptionPane.ERROR_MESSAGE);
-                } else if (!coordenadaAsiento.isEmpty() && !tfAsientos.isEnabled()) {
-                    JOptionPane.showMessageDialog(null, "No puede seleccionar este asiento, debe comprar otro boleto.", "Error", JOptionPane.ERROR_MESSAGE);
-                } else {
-                    // Concatenar la nueva coordenada
-                    tfAsientos.setText(tfAsientos.getText().isEmpty() ? coordenadaAsiento : tfAsientos.getText() + ", " + coordenadaAsiento);
-                    tfTotal.setText(String.valueOf(CalcularPrecioAsiento(tfAsientos.getText())));
+                    // Dividir la cadena en un arreglo
+                    String[] asientosArray = asientosSeleccionados.replace(" ", "").split(",");
+
+                    // Crear una lista para facilitar la eliminación de elementos
+                    List<String> asientosList = new ArrayList<>(Arrays.asList(asientosArray));
+
+                    // Eliminar la coordenada del asiento de la lista
+                    asientosList.remove(coordenadaAsiento.trim());
+
+                    // Unir nuevamente la lista en una cadena, separada por comas
+                    asientosSeleccionados = String.join(", ", asientosList);
+                    
+                    tfAsientos.setText(asientosSeleccionados);
+                    tfTotal.setText(String.valueOf(CalcularPrecioAsiento(tfAsientos.getText().trim())));
+                } else if (SwingUtilities.isLeftMouseButton(e)) {
+                    
+                    if (coordenadaAsiento == null || coordenadaAsiento.isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "El asiento no es válido.", "Error", JOptionPane.ERROR_MESSAGE);
+                    } else if (tfAsientos.getText().contains(coordenadaAsiento)) {
+                        JOptionPane.showMessageDialog(null, "El asiento ya ha sido seleccionado.", "Error", JOptionPane.ERROR_MESSAGE);
+                    } else if (!coordenadaAsiento.isEmpty() && !tfPersonaDPI.isEnabled()) {
+                        JOptionPane.showMessageDialog(null, "No puede seleccionar este asiento, debe comprar otro boleto.", "Error", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        // Concatenar la nueva coordenada
+                        tfAsientos.setText(tfAsientos.getText().isEmpty() ? coordenadaAsiento : tfAsientos.getText() + ", " + coordenadaAsiento);
+                        tfTotal.setText(String.valueOf(CalcularPrecioAsiento(tfAsientos.getText())));
+                    }
                 }
             }
         };
     }
-
+    
     private MouseAdapter CrearClicAsientoOcupado(char row, int subColumn) {
         return new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int fila = (e.getY() / 50) + 1;
                 char rowChar = (char) (row + fila - 1);
-
+                
                 String coordenadaAsiento = String.valueOf(rowChar) + subColumn;
-
+                
                 if (coordenadaAsiento == null || coordenadaAsiento.isEmpty()) {
                     JOptionPane.showMessageDialog(null, "El asiento no es válido.", "Error", JOptionPane.ERROR_MESSAGE);
                 } else if (tfAsientos.isEnabled()) {
@@ -589,24 +615,24 @@ public class BoletoVista extends javax.swing.JFrame {
             }
         });
     }
-
+    
     private void InicializarPanelBus() {
         this.panelBus.setPreferredSize(new Dimension(450, 700));
         this.panelBus.setBackground(Color.WHITE);
         this.panelBus.setLayout(new GridLayout(0, numColumns, 10, 10));
-
+        
         this.CargarAsientos();
     }
-
+    
     private void InicializarCompraBoleto() {
         this.tfPrecioAsiento.setEnabled(false);
         this.tfPrecioAsiento.setText("15.00");
         this.btnComprar.setEnabled(false);
-
+        
         ImageIcon originalIcon = new ImageIcon("../Recursos/lupa.png");
         this.btnBuscarPersona.setIcon(originalIcon);
     }
-
+    
     private void LimpiarFormulario() {
         this.tfAsientos.setText("");
         this.tfPersonaDPI.setText("");
@@ -614,36 +640,36 @@ public class BoletoVista extends javax.swing.JFrame {
         this.tfPersonaNombre.setText("");
         this.tfTotal.setText("");
     }
-
+    
     private void CargarAsientos() {
         BoletoControlador boletoControlador = new BoletoControlador();
         List<String> listadoAsientosReservados = boletoControlador.ObtenerAsientosReservados();
-
+        
         this.AgregarAsientoConductor();
         this.AgregarEncabezadosColumnas();
         for (char row = 'A'; row <= 'I'; row++) {
             this.AgregarAsientosPorFila(listadoAsientosReservados, row);
         }
     }
-
+    
     private void CargarBoletoPersona(String pBoletoAsiento) {
         BoletoControlador boletoControlador = new BoletoControlador();
-
+        
         Boleto boleto = boletoControlador.BuscarBoletoAsiento(pBoletoAsiento);
-
+        
         if (boleto == null) {
             return;
         }
-
+        
         PersonaControlador personaControlador = new PersonaControlador();
         UUID personaId = boleto.getIdPersona();
-
+        
         Persona persona = personaControlador.BuscarPersona(personaId);
-
+        
         if (persona == null) {
             return;
         }
-
+        
         this.tfPersonaDPI.setEnabled(false);
         this.tfPersonaNIT.setEnabled(false);
         this.tfPersonaNombre.setEnabled(false);
@@ -652,54 +678,58 @@ public class BoletoVista extends javax.swing.JFrame {
         this.tfTotal.setEnabled(false);
         this.btnComprar.setEnabled(false);
         this.btnBuscarPersona.setEnabled(false);
-
+        
         this.tfPersonaDPI.setText(String.valueOf(persona.getPersonaDocumento()));
         this.tfPersonaNIT.setText(String.valueOf(persona.getPersonaNIT()));
         this.tfPersonaNombre.setText(persona.getPersonaNombre());
         this.tfAsientos.setText(boleto.getBoletoAsientos());
         this.tfPrecioAsiento.setText(String.valueOf(boleto.getBoletoPrecioAsiento()));
         this.tfTotal.setText(String.valueOf(boleto.getBoletoTotal()));
-
+        
         this.labelBoletoId.setText("Boleto No. " + boleto.getBoletoId().toString().substring(0, 8));
         this.labelAsientoDetalle.setText("UBICACIÓN: ");
         this.labelAsientoCoordenada.setText(pBoletoAsiento);
-
+        
         if (pBoletoAsiento.contains("1") || pBoletoAsiento.contains("4")) {
             this.labelAsientoUbicacion.setText("VENTANILLA");
         } else if (pBoletoAsiento.contains("2") || pBoletoAsiento.contains("3")) {
             this.labelAsientoUbicacion.setText("PASILLO");
         }
     }
-
+    
     private double CalcularPrecioAsiento(String pAsientosSeleccionados) {
         double precioAsientoIndividual = Double.parseDouble(this.tfPrecioAsiento.getText());
         double precioAsientoTotal = 0.00;
-
+        
+        if (pAsientosSeleccionados.isEmpty()) {
+            return precioAsientoTotal;
+        }
+        
         String[] asientos = pAsientosSeleccionados.split(",");
-
+        
         for (String asiento : asientos) {
             precioAsientoTotal += precioAsientoIndividual;
         }
-
+        
         return precioAsientoTotal;
     }
-
+    
     private JLabel CrearAsiento(String seatNumber, List<String> listadoAsientosReservados) {
         if (listadoAsientosReservados == null || listadoAsientosReservados.size() <= 0) {
             return this.CrearAsientoDisponible(seatNumber);
         }
-
+        
         Optional<String> boletoEncontrado = listadoAsientosReservados.stream()
                 .filter(boleto -> boleto.equals(seatNumber))
                 .findFirst();
-
+        
         if (boletoEncontrado == null || boletoEncontrado.isEmpty()) {
             return this.CrearAsientoDisponible(seatNumber);
         } else {
             return this.CrearAsientoOcupado(seatNumber);
         }
     }
-
+    
     private JLabel CrearAsientoConductor() {
         JLabel seatLabel = new JLabel("C", JLabel.CENTER);
         seatLabel.setVerticalAlignment(JLabel.CENTER);
@@ -712,10 +742,10 @@ public class BoletoVista extends javax.swing.JFrame {
         Image scaledImage = originalIcon.getImage().getScaledInstance(50, 50, java.awt.Image.SCALE_SMOOTH);
         ImageIcon scaledIcon = new ImageIcon(scaledImage);
         seatLabel.setIcon(scaledIcon);
-
+        
         return seatLabel;
     }
-
+    
     private JLabel CrearAsientoDisponible(String seatNumber) {
         JLabel asientoDisponible = new JLabel(seatNumber, JLabel.CENTER);
         asientoDisponible.setVerticalAlignment(JLabel.CENTER);
@@ -728,17 +758,17 @@ public class BoletoVista extends javax.swing.JFrame {
         Image scaledImage = originalIcon.getImage().getScaledInstance(50, 50, java.awt.Image.SCALE_SMOOTH);
         ImageIcon scaledIcon = new ImageIcon(scaledImage);
         asientoDisponible.setIcon(scaledIcon);
-
+        
         char rowChar = seatNumber.charAt(0);
 
         // Obtén el segundo carácter como número
         int subColumnNumber = Character.getNumericValue(seatNumber.charAt(1));
-
+        this.tfAsientos.setEnabled(false);
         asientoDisponible.addMouseListener(CrearClicAsientoDisponible(rowChar, subColumnNumber));
-
+        
         return asientoDisponible;
     }
-
+    
     private JLabel CrearAsientoOcupado(String seatNumber) {
         JLabel asientoOcupado = new JLabel(seatNumber, JLabel.CENTER);
         asientoOcupado.setVerticalAlignment(JLabel.CENTER);
@@ -751,47 +781,47 @@ public class BoletoVista extends javax.swing.JFrame {
         Image scaledImage = originalIcon.getImage().getScaledInstance(50, 50, java.awt.Image.SCALE_SMOOTH);
         ImageIcon scaledIcon = new ImageIcon(scaledImage);
         asientoOcupado.setIcon(scaledIcon);
-
+        
         char rowChar = seatNumber.charAt(0);
 
         // Obtén el segundo carácter como número
         int subColumnNumber = Character.getNumericValue(seatNumber.charAt(1));
-
+        
         asientoOcupado.addMouseListener(CrearClicAsientoOcupado(rowChar, subColumnNumber));
-
+        
         return asientoOcupado;
     }
-
+    
     private JLabel CrearAsientoAislado() {
         JLabel aisleLabel = new JLabel("", JLabel.CENTER);
         aisleLabel.setOpaque(true);
         aisleLabel.setBackground(Color.LIGHT_GRAY); // Color gris para representar el pasillo
         return aisleLabel;
     }
-
+    
     private JLabel CrearLabelVacio() {
         return new JLabel("", JLabel.CENTER);
     }
-
+    
     private void AgregarAsientoConductor() {
         this.panelBus.add(this.CrearAsientoConductor());
     }
-
+    
     private void AgregarEncabezadosColumnas() {
         for (int i = 1; i < numColumns; i++) {
             this.panelBus.add(this.CrearLabelVacio());
         }
     }
-
+    
     private void AgregarAsientosPorFila(List<String> listadoAsientosReservados, char row) {
         for (int subColumn = 1; subColumn <= numSubColumns; subColumn++) {
             String asientoNumero = row + String.valueOf(subColumn);
             JLabel asiento = this.CrearAsiento(asientoNumero, listadoAsientosReservados);
             this.panelBus.add(asiento);
         }
-
+        
         this.panelBus.add(this.CrearAsientoAislado());
-
+        
         for (int subColumn = 3; subColumn <= 2 * numSubColumns; subColumn++) {
             String seatNumber = row + String.valueOf(subColumn);
             JLabel asiento = this.CrearAsiento(seatNumber, listadoAsientosReservados);
