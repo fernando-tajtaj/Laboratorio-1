@@ -20,6 +20,15 @@ public class MenuVista extends javax.swing.JFrame {
         initComponents();
     }
 
+    public void CargarPanelSecundario(javax.swing.JFrame pFrame, String pFrameNombre)
+    {
+        initComponents();
+        panelSecundario.removeAll();
+        panelSecundario.add(pFrame.getContentPane(), pFrameNombre);
+        panelSecundario.revalidate();
+        panelSecundario.repaint();
+    }
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -268,7 +277,7 @@ public class MenuVista extends javax.swing.JFrame {
 
     private void btnBoletosMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnBoletosMouseClicked
         // TODO add your handling code here:
-        BoletoVista boletoVista = new BoletoVista();
+        BoletoVista boletoVista = new BoletoVista(this);
         panelSecundario.removeAll();
         panelSecundario.add(boletoVista.getContentPane(), "Boleto");
         panelSecundario.revalidate();
@@ -331,6 +340,6 @@ public class MenuVista extends javax.swing.JFrame {
     private javax.swing.JPanel panelInicio;
     private javax.swing.JPanel panelMenu;
     private javax.swing.JPanel panelPersonas;
-    private javax.swing.JPanel panelSecundario;
+    protected javax.swing.JPanel panelSecundario;
     // End of variables declaration//GEN-END:variables
 }

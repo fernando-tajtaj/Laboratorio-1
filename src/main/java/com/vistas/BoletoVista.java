@@ -42,6 +42,13 @@ public class BoletoVista extends javax.swing.JFrame {
         InicializarPanelBus();
         InicializarCompraBoleto();
     }
+    public BoletoVista(MenuVista pMenuVista)
+    {
+        this.menuVista = pMenuVista;
+        initComponents();
+        InicializarPanelBus();
+        InicializarCompraBoleto();
+    }
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -372,47 +379,6 @@ public class BoletoVista extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void btnBuscarPersonaMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnBuscarPersonaMouseClicked
-        // TODO add your handling code here:
-        // TODO add your handling code here:
-        String personaDPI = this.tfPersonaDPI.getText();
-        String personaNIT = this.tfPersonaNIT.getText();
-
-        if (personaNIT.isEmpty() && !personaDPI.matches("\\d+")) {
-            JOptionPane.showMessageDialog(null, "DEBE INGRESAR UN NUMERO DE DOCUMENTO VALIDO", "Error", JOptionPane.ERROR_MESSAGE);
-            this.btnComprar.setEnabled(false);
-            return;
-        }
-
-        PersonaControlador personaControlador = new PersonaControlador();
-
-        long personaDocumento = !personaDPI.isEmpty() ? Long.parseLong(personaDPI) : 0;
-
-        if (personaDocumento == 0 && personaNIT.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "DEBE INGRESAR UN NUMERO DE DOCUMENTO O NIT", "Error", JOptionPane.ERROR_MESSAGE);
-            this.btnComprar.setEnabled(false);
-            return;
-        }
-
-        Persona persona = personaControlador.BuscarPersona(personaDocumento, personaNIT);
-
-        if (persona == null) {
-            this.btnComprar.setEnabled(false);
-            JOptionPane.showMessageDialog(null, "NO SE ENCONTRARON REGISTROS CON ESE NUMERO DE DOCUMENTO O NIT. SE REDIRECCIONARA A LA PESTAÑA DE REGISTRO DE PERSONAS", "Error", JOptionPane.ERROR_MESSAGE);
-            this.RedireccionarPersona();
-            return;
-        }
-
-        session = Session.getInstance();
-        session.setIdTemporal(persona.getPersonaId());
-
-        this.tfPersonaDPI.setText(String.valueOf(persona.getPersonaDocumento()));
-        this.tfPersonaNIT.setText(persona.getPersonaNIT());
-        this.tfPersonaNombre.setText(persona.getPersonaNombre());
-
-        this.btnComprar.setEnabled(true);
-    }//GEN-LAST:event_btnBuscarPersonaMouseClicked
-
     private void btnComprarMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnComprarMouseClicked
         // TODO add your handling code here:
         // TODO add your handling code here:
@@ -469,14 +435,79 @@ public class BoletoVista extends javax.swing.JFrame {
         // TODO add your handling code here:
         panelGuardarAsiento.setBackground(new Color(4, 41, 64));
     }//GEN-LAST:event_btnComprarMouseExited
-    
+
+    private void btnBuscarPersonaMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnBuscarPersonaMouseClicked
+        // TODO add your handling code here:
+        String personaDPI = this.tfPersonaDPI.getText();
+        String personaNIT = this.tfPersonaNIT.getText();
+
+        if (!this.ValidarDatosBusquedaPersona(personaDPI, personaNIT)) {
+            this.btnComprar.setEnabled(false);
+            return;
+        }
+
+        long personaDocumento = !personaDPI.isEmpty() ? Long.parseLong(personaDPI) : 0;
+        
+        Persona persona = this.BuscarPersona(personaDocumento, personaNIT);
+
+        if (persona == null) {
+            this.btnComprar.setEnabled(false);
+            JOptionPane.showMessageDialog(null, "NO SE ENCONTRARON REGISTROS CON ESE NÚMERO DE DOCUMENTO O NIT. SE REDIRECCIONARA A LA PESTAÑA DE REGISTRO DE PERSONAS", "Error", JOptionPane.ERROR_MESSAGE);
+            this.RedireccionarPersona();
+            return;
+        }
+
+        session = Session.getInstance();
+        session.setIdTemporal(persona.getPersonaId());
+
+        this.tfPersonaDPI.setText(String.valueOf(persona.getPersonaDocumento()));
+        this.tfPersonaNIT.setText(persona.getPersonaNIT());
+        this.tfPersonaNombre.setText(persona.getPersonaNombre());
+
+        this.btnComprar.setEnabled(true);
+    }//GEN-LAST:event_btnBuscarPersonaMouseClicked
     private UUID GenerarBoletoId() {
         return UUID.randomUUID();
     }
 
+    private Boolean ValidarDatosBusquedaPersona(String pPersonaDPI, String pPersonaNIT) {
+        if ("0".equals(pPersonaDPI) && pPersonaNIT.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "DEBE INGRESAR UN NÚMERO DE DOCUMENTO O NIT", "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        
+        if (pPersonaNIT.isEmpty() && pPersonaDPI.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "DEBE INGRESAR UN NÚMERO DE DOCUMENTO O NIT", "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        
+        if (pPersonaNIT.isEmpty() && !pPersonaDPI.matches("\\d+")) {
+            JOptionPane.showMessageDialog(null, "DEBE INGRESAR UN NÚMERO DE DOCUMENTO VÁLIDO", "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        if ("C/F".equals(pPersonaNIT) || "c/f".equals(pPersonaNIT)) {
+            JOptionPane.showMessageDialog(null, "DEBE INGRESAR UN NÚMERO DE NIT VÁLIDO", "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        return true;
+    }
+
+    private Persona BuscarPersona(long pPersonaDocumento, String pPersonaNIT) {
+        PersonaControlador personaControlador = new PersonaControlador();
+
+        Persona persona = personaControlador.BuscarPersona(pPersonaDocumento, pPersonaNIT);
+
+        return persona;
+    }
+
     private void RedireccionarPersona() {
         PersonaVista personaVista = new PersonaVista();
-        personaVista.show();
+        this.menuVista.panelSecundario.removeAll();
+        this.menuVista.panelSecundario.add(personaVista.getContentPane(), "Persona");
+        this.menuVista.panelSecundario.revalidate();
+        this.menuVista.panelSecundario.repaint();
     }
 
     private MouseAdapter CrearClicAsientoDisponible(char row, int subColumn) {
@@ -492,9 +523,9 @@ public class BoletoVista extends javax.swing.JFrame {
                     JOptionPane.showMessageDialog(null, "El asiento no es válido.", "Error", JOptionPane.ERROR_MESSAGE);
                 } else if (tfAsientos.getText().contains(coordenadaAsiento)) {
                     JOptionPane.showMessageDialog(null, "El asiento ya ha sido seleccionado.", "Error", JOptionPane.ERROR_MESSAGE);
-                } else if (!coordenadaAsiento.isEmpty() && !tfAsientos.isEnabled()){
+                } else if (!coordenadaAsiento.isEmpty() && !tfAsientos.isEnabled()) {
                     JOptionPane.showMessageDialog(null, "No puede seleccionar este asiento, debe comprar otro boleto.", "Error", JOptionPane.ERROR_MESSAGE);
-                }else {                    
+                } else {
                     // Concatenar la nueva coordenada
                     tfAsientos.setText(tfAsientos.getText().isEmpty() ? coordenadaAsiento : tfAsientos.getText() + ", " + coordenadaAsiento);
                     tfTotal.setText(String.valueOf(CalcularPrecioAsiento(tfAsientos.getText())));
@@ -514,7 +545,7 @@ public class BoletoVista extends javax.swing.JFrame {
 
                 if (coordenadaAsiento == null || coordenadaAsiento.isEmpty()) {
                     JOptionPane.showMessageDialog(null, "El asiento no es válido.", "Error", JOptionPane.ERROR_MESSAGE);
-                } else if (tfAsientos.isEnabled()){
+                } else if (tfAsientos.isEnabled()) {
                     JOptionPane.showMessageDialog(null, "Asiento reservado, seleccione otro.", "Error", JOptionPane.ERROR_MESSAGE);
                 } else {
                     CargarBoletoPersona(coordenadaAsiento);
@@ -799,4 +830,5 @@ public class BoletoVista extends javax.swing.JFrame {
     private Session session;
     private final int numColumns = 5;
     private final int numSubColumns = 2;
+    private MenuVista menuVista;
 }
