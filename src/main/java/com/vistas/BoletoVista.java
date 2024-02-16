@@ -490,9 +490,11 @@ public class BoletoVista extends javax.swing.JFrame {
 
                 if (coordenadaAsiento == null || coordenadaAsiento.isEmpty()) {
                     JOptionPane.showMessageDialog(null, "El asiento no es válido.", "Error", JOptionPane.ERROR_MESSAGE);
-                } else if (tfPersonaNombre.getText().contains(coordenadaAsiento)) {
+                } else if (tfAsientos.getText().contains(coordenadaAsiento)) {
                     JOptionPane.showMessageDialog(null, "El asiento ya ha sido seleccionado.", "Error", JOptionPane.ERROR_MESSAGE);
-                } else {                    
+                } else if (!coordenadaAsiento.isEmpty() && !tfAsientos.isEnabled()){
+                    JOptionPane.showMessageDialog(null, "No puede seleccionar este asiento, debe comprar otro boleto.", "Error", JOptionPane.ERROR_MESSAGE);
+                }else {                    
                     // Concatenar la nueva coordenada
                     tfAsientos.setText(tfAsientos.getText().isEmpty() ? coordenadaAsiento : tfAsientos.getText() + ", " + coordenadaAsiento);
                     tfTotal.setText(String.valueOf(CalcularPrecioAsiento(tfAsientos.getText())));
@@ -512,6 +514,8 @@ public class BoletoVista extends javax.swing.JFrame {
 
                 if (coordenadaAsiento == null || coordenadaAsiento.isEmpty()) {
                     JOptionPane.showMessageDialog(null, "El asiento no es válido.", "Error", JOptionPane.ERROR_MESSAGE);
+                } else if (tfAsientos.isEnabled()){
+                    JOptionPane.showMessageDialog(null, "Asiento reservado, seleccione otro.", "Error", JOptionPane.ERROR_MESSAGE);
                 } else {
                     CargarBoletoPersona(coordenadaAsiento);
                 }
